@@ -23,3 +23,69 @@ class SiameseVGG11(torch.nn.Module):
         
         x = self.vgg.classifier(x)
         return x
+    
+class SiameseVGG13(torch.nn.Module):
+    def __init__(self, num_classes=1000, weights=None):
+        super(SiameseVGG13, self).__init__()
+        self.vgg = models.vgg13(weights=weights)
+        self.vgg.classifier[6] = nn.Linear(4096, num_classes)
+        
+        self.merge = nn.Sequential(
+            nn.Linear(25088*2, 25088),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = self.vgg.features(x1), self.vgg.features(x2)
+        x1, x2 = self.vgg.avgpool(x1), self.vgg.avgpool(x2)
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        
+        x = torch.cat((x1, x2), dim=1)
+        x = self.merge(x)
+        
+        x = self.vgg.classifier(x)
+        return x
+    
+class SiameseVGG16(torch.nn.Module):
+    def __init__(self, num_classes=1000, weights=None):
+        super(SiameseVGG16, self).__init__()
+        self.vgg = models.vgg16(weights=weights)
+        self.vgg.classifier[6] = nn.Linear(4096, num_classes)
+        
+        self.merge = nn.Sequential(
+            nn.Linear(25088*2, 25088),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = self.vgg.features(x1), self.vgg.features(x2)
+        x1, x2 = self.vgg.avgpool(x1), self.vgg.avgpool(x2)
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        
+        x = torch.cat((x1, x2), dim=1)
+        x = self.merge(x)
+        
+        x = self.vgg.classifier(x)
+        return x
+    
+class SiameseVGG19(torch.nn.Module):
+    def __init__(self, num_classes=1000, weights=None):
+        super(SiameseVGG19, self).__init__()
+        self.vgg = models.vgg19(weights=weights)
+        self.vgg.classifier[6] = nn.Linear(4096, num_classes)
+        
+        self.merge = nn.Sequential(
+            nn.Linear(25088*2, 25088),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = self.vgg.features(x1), self.vgg.features(x2)
+        x1, x2 = self.vgg.avgpool(x1), self.vgg.avgpool(x2)
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        
+        x = torch.cat((x1, x2), dim=1)
+        x = self.merge(x)
+        
+        x = self.vgg.classifier(x)
+        return x
