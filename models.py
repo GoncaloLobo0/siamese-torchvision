@@ -3,9 +3,9 @@ import torchvision.models as models
 import torch.nn as nn
 
 class SiameseVGG11(torch.nn.Module):
-    def __init__(self, num_classes=1000, pretrained=True):
+    def __init__(self, num_classes=1000, weights=None):
         super(SiameseVGG11, self).__init__()
-        self.vgg = models.vgg11(pretrained=pretrained)
+        self.vgg = models.vgg11(weights=weights)
         self.vgg.classifier[6] = nn.Linear(4096, num_classes)
         
         self.merge = nn.Sequential(
