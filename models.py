@@ -9,7 +9,7 @@ class SiameseVGG11(torch.nn.Module):
         self.vgg.classifier[6] = nn.Linear(4096, num_classes)
         
         self.merge = nn.Sequential(
-            nn.Linear(8192, 4096),
+            nn.Linear(25088*2, 4096),
             nn.ReLU(inplace=True),
         )
 
