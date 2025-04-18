@@ -81,7 +81,7 @@ class SiameseConvnext_base(torch.nn.Module):
         self.convnext = models.convnext_base(weights=weights)
         
         self.convnext.classifier[0] = LayerNorm2d(1024*2, eps=1e-06, elementwise_affine=True)
-        self.convnext.classifier[2] = nn.Linear(1024, num_classes)
+        self.convnext.classifier[2] = nn.Linear(1024*2, num_classes)
     
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         x1, x2 = self.convnext.features(x1), self.convnext.features(x2)
