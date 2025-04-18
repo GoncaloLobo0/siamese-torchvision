@@ -8,10 +8,7 @@ class SiameseVGG11(torch.nn.Module):
         self.vgg = models.vgg11(weights=weights)
         self.vgg.classifier[6] = nn.Linear(4096, num_classes)
         
-        self.merge = nn.Sequential(
-            nn.Linear(25088*2, 25088),
-            nn.ReLU(inplace=True),
-        )
+        self.vgg.classifier[0] = nn.Linear(25088*2, 4096)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         x1, x2 = self.vgg.features(x1), self.vgg.features(x2)
@@ -19,7 +16,6 @@ class SiameseVGG11(torch.nn.Module):
         x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
         
         x = torch.cat((x1, x2), dim=1)
-        x = self.merge(x)
         
         x = self.vgg.classifier(x)
         return x
