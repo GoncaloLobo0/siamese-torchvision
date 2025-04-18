@@ -105,6 +105,8 @@ class SiameseConvnext_base(torch.nn.Module):
         x1, x2 = self.convnext.features(x1), self.convnext.features(x2)
         x1, x2 = self.convnext.avgpool(x1), self.convnext.avgpool(x2)
         
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        
         x = torch.cat((x1, x2), dim=1)
         x = self.merge(x)
         
