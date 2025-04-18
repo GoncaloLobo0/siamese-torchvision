@@ -110,7 +110,7 @@ class SiameseConvnext_base(torch.nn.Module):
         x = torch.cat((x1, x2), dim=1)
         x = self.merge(x)
         
-        x.unsqueeze(-1).unsqueeze(-1) # Fix the shape for classifier because it was already flattened for the merge layer
+        x = x.unsqueeze(-1).unsqueeze(-1) # Fix the shape for classifier because it was already flattened for the merge layer
         
         x = self.convnext.classifier(x)
         return x
