@@ -89,3 +89,26 @@ class SiameseVGG19(torch.nn.Module):
         
         x = self.vgg.classifier(x)
         return x
+    
+class SiameseConvnext_base(torch.nn.Module):
+    def __init__(self, num_classes=1000, weights=None):
+        super(SiameseConvnext_base, self).__init__()
+        self.convnext = models.convnext_base(weights=weights)
+        self.convnext.classifier[2] = nn.Linear(1024, num_classes)
+        
+        self.merge = nn.Sequential(
+            nn.Linear(1024*2, 1024),
+            nn.ReLU(inplace=True),
+        )
+    
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = self.convnext.features(x1), self.convnext.features(x2)
+        x1, x2 = self.convnext.avgpool(x1), self.convnext.avgpool(x2)
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        
+        x = torch.cat((x1, x2), dim=1)
+        x = self.merge(x)
+        
+        x = self.convnext.classifier(x)
+        return x
+        
