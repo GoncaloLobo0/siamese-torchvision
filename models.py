@@ -19,6 +19,23 @@ class DualInputEfficientNetB0(nn.Module):
         
         x = self.efficientnet.classifier(x)
         return x
+
+class DualInputEfficientNetB4(nn.Module):
+    def __init__(self, num_classes=1000, weights=None):
+        super(DualInputEfficientNetB4, self).__init__()
+        self.efficientnet = models.efficientnet_b4(weights=weights)
+        
+        self.efficientnet.classifier[1] = nn.Linear(1792*2, num_classes)
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = self.efficientnet.features(x1), self.efficientnet.features(x2)
+        x1, x2 = self.efficientnet.avgpool(x1), self.efficientnet.avgpool(x2)
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        
+        x = torch.cat((x1, x2), dim=1)
+        
+        x = self.efficientnet.classifier(x)
+        return x
     
 class DualInputEfficientNetB6(nn.Module):
     def __init__(self, num_classes=1000, weights=None):
