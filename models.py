@@ -12,7 +12,7 @@ class DualInputResNet18(nn.Module):
         # Remove the original fully connected layer
         self.base_model.fc = nn.Identity()
         # Create a new classifier layer for dual input
-        self.fc = nn.Linear(base_model.fc.in_features * 2, num_classes)
+        self.fc = nn.Linear(base_model.num_features * 2, num_classes)
         
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         # Process both inputs in parallel
