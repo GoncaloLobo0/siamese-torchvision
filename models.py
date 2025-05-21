@@ -6,7 +6,7 @@ import timm
 
 def create_dual_input_retinamnist_resnet18(num_classes=8, weightsFile=None):
     state = torch.load(weightsFile, map_location='cpu')
-    model = timm.create_model('resnet18', pretrained=False, num_classes=3)
+    model = timm.create_model('resnet18', pretrained=False, num_classes=5)
 
     if 'model' in state:
         model.load_state_dict(state['model'], strict=False)
