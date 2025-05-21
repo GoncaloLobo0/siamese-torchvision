@@ -2,6 +2,46 @@ import torch
 import torchvision.models as models
 import torch.nn as nn
 from torchvision.models.convnext import LayerNorm2d
+import timm
+
+def create_dual_input_retinamnist_resnet18(num_classes=8, weightsFile=None):
+    state = torch.load(weightsFile, map_location='cpu')
+    model = timm.create_model('resnet18', pretrained=False, num_classes=3)
+
+    if 'model' in state:
+        model.load_state_dict(state['model'], strict=False)
+
+    elif 'net' in state:
+        model.load_state_dict(state['net'], strict=False)
+
+    else:
+        model.load_state_dict(state, strict=False)
+
+    # Create a new classifier layer for dual input
+    model.fc = nn.Linear(model.fc.in_features * 2, num_classes)
+
+    def forward(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = model.conv1(x1), model.conv1(x2)
+        x1, x2 = model.bn1(x1), model.bn1(x2)
+        x1, x2 = model.relu(x1), model.relu(x2)
+        x1, x2 = model.maxpool(x1), model.maxpool(x2)
+
+        x1, x2 = model.layer1(x1), model.layer1(x2)
+        x1, x2 = model.layer2(x1), model.layer2(x2)
+        x1, x2 = model.layer3(x1), model.layer3(x2)
+        x1, x2 = model.layer4(x1), model.layer4(x2)
+
+        x1, x2 = model.avgpool(x1), model.avgpool(x2)
+        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+        x = torch.cat((x1, x2), dim=1)
+        x = model.fc(x)
+
+        return x
+    
+    model.forward = forward
+    return model
+
+
 
 class DualInputEfficientNetB0(nn.Module):
     def __init__(self, num_classes=1000, weights=None):
