@@ -2,44 +2,57 @@ import torch
 import torchvision.models as models
 import torch.nn as nn
 from torchvision.models.convnext import LayerNorm2d
+import torch.nn.functional as F
 import timm
 
-def create_dual_input_retinamnist_resnet18(num_classes=8, weightsFile=None):
-    state = torch.load(weightsFile, map_location='cpu')
-    model = timm.create_model('resnet18', pretrained=False, num_classes=5)
-
-    if 'model' in state:
-        model.load_state_dict(state['model'], strict=False)
-
-    elif 'net' in state:
-        model.load_state_dict(state['net'], strict=False)
-
-    else:
-        model.load_state_dict(state, strict=False)
-
-    # Create a new classifier layer for dual input
-    model.fc = nn.Linear(model.fc.in_features * 2, num_classes)
-
-    def forward(x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
-        x1, x2 = model.conv1(x1), model.conv1(x2)
-        x1, x2 = model.bn1(x1), model.bn1(x2)
-        x1, x2 = model.relu(x1), model.relu(x2)
-        x1, x2 = model.maxpool(x1), model.maxpool(x2)
-
-        x1, x2 = model.layer1(x1), model.layer1(x2)
-        x1, x2 = model.layer2(x1), model.layer2(x2)
-        x1, x2 = model.layer3(x1), model.layer3(x2)
-        x1, x2 = model.layer4(x1), model.layer4(x2)
-
-        x1, x2 = model.avgpool(x1), model.avgpool(x2)
-        x1, x2 = torch.flatten(x1, 1), torch.flatten(x2, 1)
+class DualInputResNet18(nn.Module):
+    def __init__(self, base_model, num_classes=8):
+        super().__init__()
+        self.base_model = base_model
+        # Remove the original fully connected layer
+        self.base_model.fc = nn.Identity()
+        # Create a new classifier layer for dual input
+        self.fc = nn.Linear(base_model.fc.in_features * 2, num_classes)
+        
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        # Process both inputs in parallel
+        x1, x2 = self.base_model.conv1(x1), self.base_model.conv1(x2)
+        x1, x2 = self.base_model.bn1(x1), self.base_model.bn1(x2)
+        x1, x2 = self.base_model.act1(x1), self.base_model.act1(x2)
+        x1, x2 = self.base_model.maxpool(x1), self.base_model.maxpool(x2)
+        
+        x1, x2 = self.base_model.layer1(x1), self.base_model.layer1(x2)
+        x1, x2 = self.base_model.layer2(x1), self.base_model.layer2(x2)
+        x1, x2 = self.base_model.layer3(x1), self.base_model.layer3(x2)
+        x1, x2 = self.base_model.layer4(x1), self.base_model.layer4(x2)
+        
+        x1, x2 = self.base_model.global_pool(x1), self.base_model.global_pool(x2)
+        
+        if self.base_model.drop_rate:
+            x1 = F.dropout(x1, p=float(self.base_model.drop_rate), training=self.training)
+            x2 = F.dropout(x2, p=float(self.base_model.drop_rate), training=self.training)
+        
+        # Concatenate and classify
         x = torch.cat((x1, x2), dim=1)
-        x = model.fc(x)
+        return self.fc(x)
 
-        return x
+def create_dual_input_retinamnist_resnet18(num_classes=8, weightsFile=None):
+    # Create base model
+    model = timm.create_model('resnet18', pretrained=False, num_classes=5)
     
-    model.forward = forward
-    return model
+    # Load weights if provided
+    if weightsFile is not None:
+        state = torch.load(weightsFile, map_location='cpu')
+        if 'model' in state:
+            model.load_state_dict(state['model'], strict=False)
+        elif 'net' in state:
+            model.load_state_dict(state['net'], strict=False)
+        else:
+            model.load_state_dict(state, strict=False)
+    
+    # Wrap in dual input model
+    dual_input_model = DualInputResNet18(model, num_classes=num_classes)
+    return dual_input_model
 
 
 
