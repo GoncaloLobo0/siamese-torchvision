@@ -212,6 +212,30 @@ class SiameseConvnext_base(torch.nn.Module):
         
         x = self.convnext.classifier(x)
         return x
+    
+class DualInputViT_b_16(torch.nn.Module):
+    def __init__(self, num_classes=1000, weights=None):
+        super(DualInputViT_b_16, self).__init__()
+        self.vit = models.vit_b_16(weights=weights)
+        
+        #self.vit.norm_layer = nn.LayerNorm(768*2, eps=1e-06, elementwise_affine=True)
+        self.vit.heads.head = nn.Linear(768*2, num_classes)
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1, x2 = self.vit._process_input(x1), self.vit._process_input(x2)
+        n = x1.shape[0]
+        
+        batch_class_token = self.vit.class_token.expand(n, -1, -1)
+        x1, x2 = torch.cat([batch_class_token, x1], dim=1), torch.cat([batch_class_token, x2], dim=1)
+        x1, x2 = self.vit.encoder(x1), self.vit.encoder(x2)
+        
+        x1, x2 = x1[:, 0], x2[:, 0]
+        
+        x = torch.cat((x1, x2), dim=1)
+        
+        x = self.vit.heads(x)
+        
+        return x
 
 class SiameseVit_b_32(torch.nn.Module):
     def __init__(self, num_classes=1000, weights=None):
